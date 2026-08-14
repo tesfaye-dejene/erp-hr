@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HR Employee Directory</title>
+  <link rel="stylesheet" href="/static/css/style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+</head>
+<body>
+  <div class="app">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-icon">HR</div>
+        <div>
+          <div class="brand-name">PeopleOps</div>
+          <div class="brand-sub">Employee Directory</div>
+        </div>
+      </div>
+
+      <nav class="nav">
+        <button class="nav-item active" data-view="directory">
+          <span class="nav-icon">👥</span> Directory
+        </button>
+        <button class="nav-item" data-view="metrics">
+          <span class="nav-icon">📊</span> Metrics
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="stat-card">
+          <div class="stat-label">On Leave</div>
+          <div class="stat-value" id="leaveCount">—</div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main -->
+    <main class="main">
+      <!-- Header -->
+      <header class="topbar">
+        <div>
+          <h1 id="pageTitle">Employee Directory</h1>
+          <p class="subtitle" id="pageSubtitle">Browse, search and manage your team</p>
+        </div>
+        <div class="topbar-actions">
+          <button class="btn btn-ghost" id="btnRefresh" title="Refresh">↻</button>
+          <button class="btn btn-primary" id="btnAddEmployee">+ Add Employee</button>
+        </div>
+      </header>
+
+      <!-- Directory View -->
+      <section id="view-directory" class="view active">
+        <!-- Toolbar -->
+        <div class="toolbar">
+          <div class="search-box">
+            <span class="search-icon">⌕</span>
+            <input type="text" id="searchInput" placeholder="Search by name or email..." />
+          </div>
+          <select id="deptFilter" class="select">
+            <option value="">All departments</option>
+          </select>
+          <div class="bulk-bar" id="bulkBar" hidden>
+            <span id="selectedCount">0 selected</span>
+            <button class="btn btn-sm btn-ghost" id="btnBulkTransfer">Transfer</button>
+            <button class="btn btn-sm btn-danger" id="btnBulkDeactivate">Deactivate</button>
+            <button class="btn btn-sm btn-ghost" id="btnClearSelection">Clear</button>
+          </div>
+        </div>
+
+        <!-- Table -->
+        <div class="card table-card">
+          <table class="table" id="employeeTable">
+            <thead>
+              <tr>
+                <th class="col-check"><input type="checkbox" id="selectAll" /></th>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Department</th>
+                <th>Hire Date</th>
+                <th>Status</th>
+                <th>Leave</th>
+                <th class="col-actions">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="employeeBody">
+              <tr class="empty-row">
+                <td colspan="8">Loading employees…</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="pagination" id="pagination">
+            <button class="btn btn-sm btn-ghost" id="btnPrev" disabled>← Prev</button>
+            <span id="pageInfo">Page 1</span>
+            <button class="btn btn-sm btn-ghost" id="btnNext" disabled>Next →</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Metrics View -->
+      <section id="view-metrics" class="view">
+        <div class="metrics-grid">
+          <div class="card metric-card">
+            <div class="metric-label">Total Employees</div>
+            <div class="metric-value" id="metricTotal">—</div>
+          </div>
+          <div class="card metric-card">
+            <div class="metric-label">On Leave</div>
+            <div class="metric-value accent" id="metricLeave">—</div>
+          </div>
+          <div class="card metric-card">
+            <div class="metric-label">Active</div>
+            <div class="metric-value success" id="metricActive">—</div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top: 1.25rem">
+          <h3 style="margin: 0 0 1rem">Department Metrics</h3>
+          <div class="form-row">
+            <input type="text" id="metricDeptId" class="input" placeholder="Department UUID" />
+            <input type="text" id="metricDeptName" class="input" placeholder="Department name (optional)" />
+            <button class="btn btn-primary" id="btnLoadMetrics">Load</button>
+          </div>
+          <div id="deptMetricsResult" class="metrics-result" hidden></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Modal: Add / Edit Employee -->
+  <div class="modal-backdrop" id="employeeModal" hidden>
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="modalTitle">Add Employee</h2>
+        <button class="btn-icon" id="btnCloseModal">✕</button>
+      </div>
+      <form id="employeeForm" class="modal-body">
+        <input type="hidden" id="formId" />
+        <div class="form-grid">
+          <div class="field">
+            <label for="formFirstName">First name</label>
+            <input type="text" id="formFirstName" class="input" required minlength="2" />
+          </div>
+          <div class="field">
+            <label for="formLastName">Last name</label>
+            <input type="text" id="formLastName" class="input" required minlength="2" />
+          </div>
+          <div class="field full">
+            <label for="formEmail">Email</label>
+            <input type="email" id="formEmail" class="input" required />
+          </div>
+          <div class="field">
+            <label for="formDeptId">Department ID (UUID)</label>
+            <input type="text" id="formDeptId" class="input" required placeholder="e.g. 11111111-1111-1111-1111-111111111111" />
+          </div>
+          <div class="field">
+            <label for="formDeptName">Department name</label>
+            <input type="text" id="formDeptName" class="input" required />
+          </div>
+          <div class="field">
+            <label for="formHireDate">Hire date</label>
+            <input type="date" id="formHireDate" class="input" required />
+          </div>
+          <div class="field">
+            <label for="formStatus">Status</label>
+            <select id="formStatus" class="select">
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+              <option value="on_leave">On Leave</option>
+              <option value="terminated">Terminated</option>
+            </select>
+          </div>
+          <div class="field full" id="leaveField" hidden>
+            <label class="checkbox-label">
+              <input type="checkbox" id="formOnLeave" /> Currently on leave
+            </label>
+          </div>
+        </div>
+        <div class="form-error" id="formError" hidden></div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-ghost" id="btnCancelForm">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="btnSaveEmployee">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Bulk Transfer -->
+  <div class="modal-backdrop" id="transferModal" hidden>
+    <div class="modal modal-sm">
+      <div class="modal-header">
+        <h2>Bulk Department Transfer</h2>
+        <button class="btn-icon" id="btnCloseTransfer">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="field">
+          <label for="transferDeptId">New department ID</label>
+          <input type="text" id="transferDeptId" class="input" placeholder="UUID" />
+        </div>
+        <div class="field">
+          <label for="transferDeptName">New department name</label>
+          <input type="text" id="transferDeptName" class="input" />
+        </div>
+        <div class="form-error" id="transferError" hidden></div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-ghost" id="btnCancelTransfer">Cancel</button>
+          <button type="button" class="btn btn-primary" id="btnConfirmTransfer">Transfer</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast-container" id="toasts"></div>
+
+  <script src="/static/js/app.js"></script>
+</body>
+</html>
